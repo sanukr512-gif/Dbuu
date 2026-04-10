@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Health System</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+body {font-family: Arial;background:#f2f7ff;margin:0;}
+header {background:#1a73e8;color:white;padding:15px;text-align:center;font-size:22px;}
+.container {max-width:900px;margin:auto;padding:20px;}
+.card {background:white;padding:20px;margin-bottom:20px;border-radius:10px;box-shadow:0 0 10px #ccc;}
+input {width:100%;padding:10px;margin:10px 0;}
+button {background:#1a73e8;color:white;border:none;padding:12px;width:100%;cursor:pointer;margin-top:5px;}
+.error {color:red;font-size:14px;}
+img {max-width:100px;margin-top:10px;}
+a {display:block;margin:8px 0;color:#1a73e8;}
+</style>
+</head>
+
+<body>
+
+<header>🏥 Smart Health System</header>
+
+<div class="container">
+
+<div class="card">
+<h3>👤 Patient Details</h3>
+<input type="text" id="name" placeholder="Patient Name">
+<p id="nameErr" class="error"></p>
+
+<input type="number" id="age" placeholder="Age">
+<p id="ageErr" class="error"></p>
+
+<input type="text" id="address" placeholder="Address">
+<p id="addrErr" class="error"></p>
+
+<input type="file" id="photo" accept="image/*" onchange="previewPhoto()">
+<img id="preview" style="display:none;">
+</div>
+
+<div class="card">
+<h3>🩺 Health Details</h3>
+<input type="text" id="bp" placeholder="BP (120/80)">
+<input type="text" id="temp" placeholder="Temperature">
+<input type="text" id="pulse" placeholder="Pulse Rate">
+<p id="vitalErr" class="error"></p>
+<button onclick="saveData()">Save</button>
+</div>
+
+<div class="card">
+<h3>💊 Medicines</h3>
+<button onclick="addMed('Paracetamol',10)">Paracetamol ₹10</button>
+<button onclick="addMed('Ibuprofen',15)">Ibuprofen ₹15</button>
+<button onclick="addMed('Amoxicillin',25)">Amoxicillin ₹25</button>
+
+<p id="cart"></p>
+<p id="total"></p>
+
+<button onclick="sendToDoctor()">📤 Send to Doctor</button>
+<button onclick="showDoctor()">Next</button>
+</div>
+
+<div class="card" id="doctorBox" style="display:none;">
+<h3>👨‍⚕️ Doctor Verification</h3>
+<input type="text" id="docName" placeholder="Doctor Name">
+<input type="text" id="docId" placeholder="Doctor ID">
+<input type="text" id="otp" placeholder="Enter OTP (123456)">
+<p id="docErr" class="error"></p>
+<p>📞 Doctor Contact: <b>9876543210</b></p>
+<button onclick="verifyDoctor()">Verify</button>
+</div>
+
+<div class="card" id="payBox" style="display:none;">
+<h3>💳 Payment</h3>
+<button onclick="payNow()">Pay & Download PDF</button>
+</div>
+
+<div class="card">
+<h3>🚨 Emergency Help</h3>
+<button onclick="callDoctor()">📞 Call Doctor</button>
+<button onclick="sendEmergency()">📍 Send Location</button>
+<button onclick="callAmbulance()">🚑 Call Ambulance (108)</button>
+<p id="locStatus"></p>
+</div>
+
+</div>
+
+<script>
+
+let medicines = [];
+let total = 0;
+let verified = false;
+let patientImage = "";
+
+// 🔥 VOICE LOAD FIX
+let hindiVoice = null;
+
+function loadVoices(){
+ let voices = speechSynthesis.getVoices();
+ hindiVoice = voices.find(v => v.lang.includes("hi")) || voices[0];
+}
+
+// IMPORTANT
+speechSynthesis.onvoiceschanged = loadVoices;
+
+function speak(text){
+ let msg = new SpeechSynthesisUtterance(text);
+ msg.voice = hindiVoice;
+ msg.lang = "hi-IN";
+ msg.rate = 0.85;
+ msg.pitch = 1;
+ speechSynthesis.speak(msg);
+}
+
+function previewPhoto(){
+ let file = document.getElementById("photo").files[0];
+ let reader = new FileReader();
+ reader.onload = e=>{
+  patientImage = e.target.result;
+  let img = document.getElementById("preview");
+  img.src = patientImage;
+  img.style.display="block";
+ };
+ if(file) reader.readAsDataURL(file);
+}
+
+function getDateTime(){
+ return new Date().toLocaleString();
+}
+
+function saveData(){
+ if(!val("name") || !val("age") || !val("address")){
+  alert("सभी जानकारी भरें");
+  return;
+ }
+ alert("डाटा सेव हो गया");
+}
+
+// MEDICINE
+function addMed(name,price){
+ let dose = prompt("दिन में कितनी बार लेना है?");
+ let time = prompt("Day या Night लिखें");
+
+ if(!dose || !time){
+  alert("पूरी जानकारी दें");
+  return;
+ }
+
+ medicines.push({name,price,dose,time});
+ total+=price;
+
+ document.getElementById("cart").innerText =
+ medicines.map(m=> m.name+" ("+m.time.toUpperCase()+") "+m.dose+"x").join(", ");
+
+ document.getElementById("total").innerText="Total ₹"+total;
+}
+
+// DOCTOR
+function sendToDoctor(){
+ alert("डॉक्टर से सलाह लेकर ही दवाई लें");
+}
+
+function showDoctor(){
+ document.getElementById("doctorBox").style.display="block";
+}
+
+function verifyDoctor(){
+ if(val("otp")==="123456"){
+  verified=true;
+  alert("डॉक्टर सत्यापित हो गए");
+  document.getElementById("payBox").style.display="block";
+ } else alert("गलत OTP");
+}
+
+function payNow(){
+ if(!verified){
+  alert("पहले डॉक्टर verify करें");
+  return;
+ }
+ alert("पेमेंट सफल");
+ downloadPDF();
+}
+
+// PDF
+function downloadPDF(){
+ const { jsPDF } = window.jspdf;
+ const doc = new jsPDF();
+
+ let y=20;
+
+ doc.text("Prescription",20,y); y+=10;
+
+ medicines.forEach(m=>{
+  doc.text(m.name+" ("+m.time.toUpperCase()+") "+m.dose+" बार",20,y);
+  y+=10;
+ });
+
+ doc.save("Prescription.pdf");
+}
+
+// EMERGENCY
+function callDoctor(){
+ window.location.href="tel:9876543210";
+ speak("डॉक्टर को कॉल किया जा रहा है");
+}
+
+function sendEmergency(){
+ navigator.geolocation.getCurrentPosition(()=>{
+  speak("डॉक्टर आपसे जल्द ही संपर्क करेंगे कृपया निश्चिंत रहें");
+ });
+}
+
+function callAmbulance(){
+ window.location.href="tel:108";
+ speak("एम्बुलेंस को कॉल किया जा रहा है");
+}
+
+function val(id){return document.getElementById(id).value;}
+
+</script>
+
+</body>
+</html>
